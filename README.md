@@ -25,11 +25,52 @@ Simply replace the above by
 
 ```yaml
 - name: Checkout code
-  uses: nschloe/action-cached-lfs-checkout@v1
-  # Use these to explicitly include/exclude files:
-  # with:
-  #   include: "*"
-  #   exclude: ""
+  uses: francisbilham11/action-cached-lfs-checkout@v1
+```
+
+Some of the parameters from the [actions/checkout@v3](https://github.com/marketplace/actions/checkout#usage) action
+are available to use too:
+
+```yaml
+- name: Checkout code
+  uses: francisbilham11/action-cached-lfs-checkout@v1
+  with:
+    # Repository name with owner. For example, actions/checkout
+    # Default: ${{ github.repository }}
+    repository: ''
+
+    # The branch, tag or SHA to checkout. When checking out the repository that
+    # triggered a workflow, this defaults to the reference or SHA for that event.
+    # Otherwise, uses the default branch.
+    ref: ''
+
+    # Personal access token (PAT) used to fetch the repository. The PAT is configured
+    # with the local git config, which enables your scripts to run authenticated git
+    # commands. The post-job step removes the PAT.
+    #
+    # We recommend using a service account with the least permissions necessary. Also
+    # when generating a new PAT, select the least scopes necessary.
+    #
+    # [Learn more about creating and using encrypted secrets](https://help.github.com/en/actions/automating-your-workflow-with-github-actions/creating-and-using-encrypted-secrets)
+    #
+    # Default: ${{ github.token }}
+    token: ''
+
+    # Relative path under $GITHUB_WORKSPACE to place the repository
+    path: ''
+
+    # Number of commits to fetch. 0 indicates all history for all branches and tags.
+    # Default: 1
+    fetch-depth: ''
+
+    # Whether to checkout submodules: `true` to checkout submodules or `recursive` to
+    # recursively checkout submodules.
+    #
+    # When the `ssh-key` input is not provided, SSH URLs beginning with
+    # `git@github.com:` are converted to HTTPS.
+    #
+    # Default: false
+    submodules: ''
 ```
 
 Check it out [on the GitHub
