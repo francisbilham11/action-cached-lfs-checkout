@@ -53,10 +53,12 @@ runs:
       if: inputs.submodules != 'false'
       working-directory: ${{ inputs.path }}
       run: |
+        pwd
         git lfs ls-files -l | cut -d' ' -f1 > .lfs-assets-id
         git submodule foreach --recursive 'git lfs ls-files -l' | cut -d' ' -f1 >> .lfs-assets-id
         grep -v Entering .lfs-assets-id | sort > .temp
         mv .temp .lfs-assets-id
+        cat .lfs-assets-id
       shell: bash
 
     - name: Restore LFS cache
@@ -64,7 +66,7 @@ runs:
       id: lfs-cache
       with:
         path: ${{ inputs.path }}/.git/lfs
-        key: lfs-${{ hashFiles('.lfs-assets-id') }}-v1
+        key: ${{ runner.os }}-lfs-${{ hashFiles('.lfs-assets-id') }}-v1
 
     - name: Git LFS Pull
       if: inputs.submodules == 'false'
