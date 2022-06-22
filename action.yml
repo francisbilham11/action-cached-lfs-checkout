@@ -69,7 +69,7 @@ runs:
         type .\splitLFS.txt | sort > .lfs-assets-id
         del .\splitLFS.txt
         del .\totalLFS.txt
-      shell: pwsh
+      shell: PowerShell
 
     - name: Create LFS file list with submodules (Windows)
       if: runner.os == 'Windows' && inputs.submodules != 'false'
@@ -82,7 +82,7 @@ runs:
         type splitLFS.txt | findstr /v Entering | sort > .lfs-assets-id
         del .\splitLFS.txt
         del .\totalLFS.txt
-      shell: pwsh
+      shell: PowerShell
 
     - name: Restore LFS cache
       uses: actions/cache@v3
@@ -109,7 +109,7 @@ runs:
       if: runner.os == 'Windows' && inputs.submodules == 'false'
       working-directory: ${{ inputs.path }}
       run: git lfs pull
-      shell: pwsh
+      shell: PowerShell
 
     - name: Git LFS Pull with submodules (Windows)
       if: runner.os == 'Windows' && inputs.submodules != 'false'
@@ -117,4 +117,4 @@ runs:
       run: |
         git lfs pull
         git submodule foreach --recursive 'git lfs pull'
-      shell: pwsh
+      shell: PowerShell
