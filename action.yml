@@ -44,13 +44,13 @@ runs:
         submodules: ${{ inputs.submodules }}
 
     - name: Create LFS file list
-      if: inputs.submodules == 'false'
+      if: runner.os != 'Windows' && inputs.submodules == 'false'
       working-directory: ${{ inputs.path }}
       run: git lfs ls-files --long | cut -d ' ' -f1 | sort > .lfs-assets-id
       shell: bash
     
     - name: Create LFS file list with submodules
-      if: inputs.submodules != 'false'
+      if: runner.os != 'Windows' && inputs.submodules != 'false'
       working-directory: ${{ inputs.path }}
       run: |
         git lfs ls-files -l | cut -d' ' -f1 > .lfs-assets-id
@@ -58,6 +58,31 @@ runs:
         grep -v Entering .lfs-assets-id | sort > .temp
         mv .temp .lfs-assets-id
       shell: bash
+
+    - name: Create LFS file list (Windows)
+      if: runner.os == 'Windows' && inputs.submodules == 'false'
+      working-directory: ${{ inputs.path }}
+      run: |
+        git lfs ls-files -l > totalLFS.txt
+        $lines = Get-Content ".\totalLFS.txt"
+        foreach ($line in $lines){Out-File -FilePath "splitLFS.txt" -Append -InputObject ($line.Split(" "))[0]}
+        type .\splitLFS.txt | sort > .lfs-assets-id
+        del .\splitLFS.txt
+        del .\totalLFS.txt
+      shell: pwsh
+
+    - name: Create LFS file list with submodules (Windows)
+      if: runner.os == 'Windows' && inputs.submodules != 'false'
+      working-directory: ${{ inputs.path }}
+      run: |
+        git lfs ls-files -l > totalLFS.txt
+        git submodule foreach --recursive "git lfs ls-files -l" >> totalLFS.txt
+        $lines = Get-Content ".\totalLFS.txt"
+        foreach ($line in $lines){Out-File -FilePath "splitLFS.txt" -Append -InputObject ($line.Split(" "))[0]}
+        type splitLFS.txt | findstr /v Entering | sort > .lfs-assets-id
+        del .\splitLFS.txt
+        del .\totalLFS.txt
+      shell: pwsh
 
     - name: Restore LFS cache
       uses: actions/cache@v3
@@ -67,15 +92,29 @@ runs:
         key: ${{ runner.os }}-lfs-${{ hashFiles('.lfs-assets-id') }}-v1
 
     - name: Git LFS Pull
-      if: inputs.submodules == 'false'
+      if: runner.os != 'Windows' && inputs.submodules == 'false'
       working-directory: ${{ inputs.path }}
       run: git lfs pull
       shell: bash
 
-    - name: Git LFS Pull
-      if: inputs.submodules != 'false'
+    - name: Git LFS Pull with submodules
+      if: runner.os != 'Windows' && inputs.submodules != 'false'
       working-directory: ${{ inputs.path }}
       run: |
         git lfs pull
         git submodule foreach --recursive 'git lfs pull'
       shell: bash
+
+    - name: Git LFS Pull (Windows)
+      if: runner.os == 'Windows' && inputs.submodules == 'false'
+      working-directory: ${{ inputs.path }}
+      run: git lfs pull
+      shell: pwsh
+
+    - name: Git LFS Pull with submodules (Windows)
+      if: runner.os == 'Windows' && inputs.submodules != 'false'
+      working-directory: ${{ inputs.path }}
+      run: |
+        git lfs pull
+        git submodule foreach --recursive 'git lfs pull'
+      shell: pwsh
