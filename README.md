@@ -25,7 +25,7 @@ Simply replace the above by
 
 ```yaml
 - name: Checkout code
-  uses: francisbilham11/action-cached-lfs-checkout@v1
+  uses: francisbilham11/action-cached-lfs-checkout@v2
 ```
 
 Some of the parameters from the [actions/checkout@v3](https://github.com/marketplace/actions/checkout#usage) action
@@ -42,6 +42,7 @@ are available to use too:
     # The branch, tag or SHA to checkout. When checking out the repository that
     # triggered a workflow, this defaults to the reference or SHA for that event.
     # Otherwise, uses the default branch.
+    # Default: ''
     ref: ''
 
     # Personal access token (PAT) used to fetch the repository. The PAT is configured
@@ -57,6 +58,7 @@ are available to use too:
     token: ''
 
     # Relative path under $GITHUB_WORKSPACE to place the repository
+    # Default: ''
     path: ''
 
     # Number of commits to fetch. 0 indicates all history for all branches and tags.
