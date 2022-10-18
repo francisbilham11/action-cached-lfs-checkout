@@ -59,7 +59,7 @@ runs:
       id: lfs-cache
       with:
         path: ${{ inputs.path }}/.git/lfs
-        key: ${{ runner.os }}-lfs-${{ hashFiles('.lfs-assets-id') }}-v1
+        key: ${{ runner.os }}-lfs-${{ hashFiles('**/.lfs-assets-id') }}-v1
 
     - name: Git LFS Pull
       working-directory: ${{ inputs.path }}
