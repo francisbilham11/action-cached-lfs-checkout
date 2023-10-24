@@ -15,7 +15,7 @@ when used with
 
 ```yaml
 - name: Checkout code
-  uses: actions/checkout@v2
+  uses: actions/checkout@v4
   with:
     lfs: true
 ```
@@ -25,15 +25,15 @@ Simply replace the above by
 
 ```yaml
 - name: Checkout code
-  uses: francisbilham11/action-cached-lfs-checkout@v2
+  uses: francisbilham11/action-cached-lfs-checkout@v3
 ```
 
-Some of the parameters from the [actions/checkout@v3](https://github.com/marketplace/actions/checkout#usage) action
+Some of the parameters from the [actions/checkout@v4](https://github.com/marketplace/actions/checkout#usage) action
 are available to use too:
 
 ```yaml
 - name: Checkout code
-  uses: francisbilham11/action-cached-lfs-checkout@v1
+  uses: francisbilham11/action-cached-lfs-checkout@v3
   with:
     # Repository name with owner. For example, actions/checkout
     # Default: ${{ github.repository }}
