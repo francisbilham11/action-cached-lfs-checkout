@@ -26,11 +26,11 @@ inputs:
   fetch-depth:
     description: "Number of commits to fetch. 0 indicates all history for all branches and tags"
     required: false
-    default: 1
+    default: '1'
   submodules:
     description: "Whether to checkout submodules. Accepted values are: true, false, recursive"
     required: false
-    default: false
+    default: ''
 
 runs:
   using: "composite"
@@ -55,7 +55,7 @@ runs:
       shell: bash
 
     - name: Restore LFS cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       id: lfs-cache
       with:
         path: ${{ inputs.path }}/.git/lfs
