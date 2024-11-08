@@ -30,7 +30,50 @@ inputs:
   submodules:
     description: "Whether to checkout submodules. Accepted values are: true, false, recursive"
     required: false
-    default: ''
+    default: ""
+  fetch-depth:
+    description: "Number of commits to fetch. 0 indicates all history for all tags and branches"
+    required: false
+    default: 1
+  ref:
+    description: >
+      The branch, tag or SHA to checkout. When checking out the repository that
+      triggered a workflow, this defaults to the reference or SHA for that
+      event.  Otherwise, uses the default branch.
+    required: false
+    default: ""
+  repository:
+    description: "Repository name with owner. For example, actions/checkout"
+    default: ${{ github.repository }}
+  token:
+    description: >
+      Personal access token (PAT) used to fetch the repository. The PAT is configured
+      with the local git config, which enables your scripts to run authenticated git
+      commands. The post-job step removes the PAT.
+      We recommend using a service account with the least permissions necessary.
+      Also when generating a new PAT, select the least scopes necessary.
+      [Learn more about creating and using encrypted secrets](https://help.github.com/en/actions/automating-your-workflow-with-github-actions/creating-and-using-encrypted-secrets)
+    required: false
+    default: ${{ github.token }}
+  submodules:
+    description: >
+      Whether to checkout submodules: `true` to checkout submodules or `recursive` to
+      recursively checkout submodules.
+    required: false
+    default: false
+  persist-credentials:
+    description: >
+      'Whether to configure the token or SSH key with the local git config'
+    required: false
+    default: true
+  enableCrossOsArchive:
+    description: >
+      Whether the cache is cross-os compatible. This is useful to cache dependencies which
+      are independent of the runner platform. This will help reduce the consumption of the
+      cache quota and help build for multiple platforms from the same cache.
+      [Learn more about cross-os caching](https://github.com/actions/cache/blob/main/tips-and-workarounds.md#cross-os-cache).
+    required: false
+    default: false
 
 runs:
   using: "composite"
@@ -40,43 +83,57 @@ runs:
       shell: bash
 
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v3
       with:
-        repository: ${{ inputs.repository }}
-        ref: ${{ inputs.ref }}
-        token: ${{ inputs.token }}
-        path: ${{ inputs.path }}
         fetch-depth: ${{ inputs.fetch-depth }}
+        ref: ${{ inputs.ref }}
+        repository: ${{ inputs.repository }}
+        token: ${{ inputs.token }}
         submodules: ${{ inputs.submodules }}
+        persist-credentials: ${{ inputs.persist-credentials }}
 
-    - name: Pull LFS files
-      run: git lfs pull
-      shell: bash
-    
     - name: Create LFS file list
       working-directory: ${{ inputs.path }}
       run: |
-        git lfs ls-files -l | cut -d' ' -f1 > .lfs-assets-id
-        git submodule foreach --recursive 'git lfs ls-files -l' | cut -d' ' -f1 >> .lfs-assets-id
-        grep -v Entering .lfs-assets-id | sort > .temp
-        mv .temp .lfs-assets-id
+        git lfs ls-files --long --include  "${{ inputs.include }}" --exclude  "${{ inputs.exclude }}" | cut -d ' ' -f1 > .lfs-assets-id-unsorted
+        git submodule foreach git lfs ls-files --long --include  "${{ inputs.include }}" --exclude  "${{ inputs.exclude }}" | cut -d ' ' -f1 >> .lfs-assets-id-unsorted
+        cat .lfs-assets-id-unsorted | sort > .lfs-assets-id
+      shell: bash
+
+    - name: Create Submodule LFS Cache Paths
+      run: |
+        CACHE_PATHS=""
+
+        # loop over the git submodule paths to generate a list of module directories to cache
+        # `git config` is used to extract the `path` value for each git submodule
+        # for more information about the .gitmodules file, see: https://git-scm.com/docs/gitmodules
+        while read line; do
+          CACHE_PATHS+=".git/modules/$line/lfs "
+        done < <(git config --file .gitmodules --get-regexp path | awk '{ print $2 }')
+
+        echo "CACHE_PATHS=$CACHE_PATHS" >> $GITHUB_OUTPUT
+      id: cache-paths
       shell: bash
 
     - name: Restore LFS cache
       uses: actions/cache@v4
       id: lfs-cache
       with:
-        path: ${{ inputs.path }}/.git/lfs
-        key: ${{ runner.os }}-lfs-${{ hashFiles('**/.lfs-assets-id') }}-v1
+        path: |
+          .git/lfs
+          ${{ steps.cache-paths.outputs.CACHE_PATHS }}
+        key: lfs-${{ hashFiles('.lfs-assets-id') }}-v2
+        enableCrossOsArchive: ${{ inputs.enableCrossOsArchive }}
 
     - name: Git LFS Pull
-      working-directory: ${{ inputs.path }}
       run: |
-        git lfs pull
-        git submodule foreach --recursive 'git lfs pull'
+        git lfs pull --include  "${{ inputs.include }}" --exclude  "${{ inputs.exclude }}"
+        git submodule foreach git lfs pull --include  "${{ inputs.include }}" --exclude  "${{ inputs.exclude }}"
       shell: bash
 
-    - name: Clean up
-      working-directory: ${{ inputs.path }}
-      run: rm .lfs-assets-id
+    # Don't leave behind temp files in case build system checks for dirty workspace
+    - name: Cleanup Temp Files
+      run: |
+        rm .lfs-assets-id-unsorted
+        rm .lfs-assets-id
       shell: bash
