@@ -39,6 +39,10 @@ inputs:
       [Learn more about creating and using encrypted secrets](https://help.github.com/en/actions/automating-your-workflow-with-github-actions/creating-and-using-encrypted-secrets)
     required: false
     default: ${{ github.token }}
+  path:
+    description: "Relative path under $GITHUB_WORKSPACE to place the repository"
+    required: false
+    default: ''
   submodules:
     description: >
       Whether to checkout submodules: `true` to checkout submodules or `recursive` to
@@ -69,10 +73,12 @@ runs:
         ref: ${{ inputs.ref }}
         repository: ${{ inputs.repository }}
         token: ${{ inputs.token }}
+        path: ${{ inputs.path }}
         submodules: ${{ inputs.submodules }}
         persist-credentials: ${{ inputs.persist-credentials }}
 
     - name: Create LFS file list
+      working-directory: ${{ inputs.path }}
       run: |
         git lfs ls-files --long --include  "${{ inputs.include }}" --exclude  "${{ inputs.exclude }}" | cut -d ' ' -f1 > .lfs-assets-id-unsorted
         git submodule foreach git lfs ls-files --long --include  "${{ inputs.include }}" --exclude  "${{ inputs.exclude }}" | cut -d ' ' -f1 >> .lfs-assets-id-unsorted
@@ -80,6 +86,7 @@ runs:
       shell: bash
 
     - name: Create Submodule LFS Cache Paths
+      working-directory: ${{ inputs.path }}
       run: |
         CACHE_PATHS=""
 
@@ -99,12 +106,13 @@ runs:
       id: lfs-cache
       with:
         path: |
-          .git/lfs
-          ${{ steps.cache-paths.outputs.CACHE_PATHS }}
+          ${{ inputs.path }}/.git/lfs
+          ${{ inputs.path }}/${{ steps.cache-paths.outputs.CACHE_PATHS }}
         key: lfs-${{ hashFiles('.lfs-assets-id') }}-v2
         enableCrossOsArchive: ${{ inputs.enableCrossOsArchive }}
 
     - name: Git LFS Pull
+      working-directory: ${{ inputs.path }}
       run: |
         git lfs pull --include  "${{ inputs.include }}" --exclude  "${{ inputs.exclude }}"
         git submodule foreach git lfs pull --include  "${{ inputs.include }}" --exclude  "${{ inputs.exclude }}"
@@ -112,6 +120,7 @@ runs:
 
     # Don't leave behind temp files in case build system checks for dirty workspace
     - name: Cleanup Temp Files
+      working-directory: ${{ inputs.path }}
       run: |
         rm .lfs-assets-id-unsorted
         rm .lfs-assets-id
