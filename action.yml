@@ -35,6 +35,10 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Initialize Git LFS
+      run: git lfs install
+      shell: bash
+
     - name: Checkout code
       uses: actions/checkout@v4
       with:
@@ -44,6 +48,10 @@ runs:
         path: ${{ inputs.path }}
         fetch-depth: ${{ inputs.fetch-depth }}
         submodules: ${{ inputs.submodules }}
+
+    - name: Pull LFS files
+      run: git lfs pull
+      shell: bash
     
     - name: Create LFS file list
       working-directory: ${{ inputs.path }}
