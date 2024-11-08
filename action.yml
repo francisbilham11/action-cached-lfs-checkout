@@ -1,34 +1,18 @@
-name: "Cached LFS checkout with submodules"
+name: "Cached LFS checkout"
 
-description: "Git checkout with LFS files from cache with submodules"
+description: "Git checkout with LFS files from cache"
 
 branding:
   icon: "download"
   color: "green"
 
 inputs:
-  repository:
-    description: "Repository name with owner"
+  include:
+    description: "Explicitly include files for LFS"
     required: false
-    default: ${{ github.repository }}
-  ref:
-    description: "The branch, tag or SHA to checkout"
-    required: false
-    default: ''
-  token:
-    description: "PAT used to fetch the repository"
-    required: false
-    default: ${{ github.token }}
-  path:
-    description: "Relative path under $GITHUB_WORKSPACE to place the repository"
-    required: false
-    default: ''
-  fetch-depth:
-    description: "Number of commits to fetch. 0 indicates all history for all branches and tags"
-    required: false
-    default: '1'
-  submodules:
-    description: "Whether to checkout submodules. Accepted values are: true, false, recursive"
+    default: "*"
+  exclude:
+    description: "Explicitly exclude files for LFS"
     required: false
     default: ""
   fetch-depth:
@@ -78,12 +62,8 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Initialize Git LFS
-      run: git lfs install
-      shell: bash
-
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: ${{ inputs.fetch-depth }}
         ref: ${{ inputs.ref }}
@@ -93,7 +73,6 @@ runs:
         persist-credentials: ${{ inputs.persist-credentials }}
 
     - name: Create LFS file list
-      working-directory: ${{ inputs.path }}
       run: |
         git lfs ls-files --long --include  "${{ inputs.include }}" --exclude  "${{ inputs.exclude }}" | cut -d ' ' -f1 > .lfs-assets-id-unsorted
         git submodule foreach git lfs ls-files --long --include  "${{ inputs.include }}" --exclude  "${{ inputs.exclude }}" | cut -d ' ' -f1 >> .lfs-assets-id-unsorted
