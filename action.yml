@@ -28,6 +28,10 @@ inputs:
       Partially clone against a given filter.
       Overrides sparse-checkout if set.
     default: ""
+  path:
+    description: 'Relative path under $GITHUB_WORKSPACE to place the repository'
+    required: false
+    default: ''
   ref:
     description: >
       The branch, tag or SHA to checkout. When checking out the repository that
@@ -76,6 +80,7 @@ runs:
       with:
         fetch-depth: ${{ inputs.fetch-depth }}
         filter: ${{ inputs.filter }}
+        path: ${{ inputs.path }}
         ref: ${{ inputs.ref }}
         repository: ${{ inputs.repository }}
         token: ${{ inputs.token }}
@@ -84,6 +89,7 @@ runs:
         clean: ${{ inputs.clean }}
 
     - name: Create LFS file list
+      working-directory: ${{ inputs.path }}
       run: |
         {
           git lfs ls-files --long --include "${{ inputs.include }}" --exclude "${{ inputs.exclude }}"
@@ -92,6 +98,7 @@ runs:
       shell: bash
 
     - name: Create Submodule LFS Cache Paths
+      working-directory: ${{ inputs.path }}
       run: |
         CACHE_PATHS=""
 
@@ -120,6 +127,7 @@ runs:
         enableCrossOsArchive: ${{ inputs.enableCrossOsArchive }}
 
     - name: Git LFS Pull
+      working-directory: ${{ inputs.path }}
       run: |
         git lfs pull --include "${{ inputs.include }}" --exclude "${{ inputs.exclude }}"
         git submodule foreach --quiet git lfs pull --include "${{ inputs.include }}" --exclude "${{ inputs.exclude }}"
@@ -129,6 +137,7 @@ runs:
 
     # Don't leave behind temp files in case build system checks for dirty workspace
     - name: Clean up temp files
+      working-directory: ${{ inputs.path }}
       if: always()
       run: rm .lfs-assets-id
       shell: bash
