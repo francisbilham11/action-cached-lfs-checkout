@@ -97,21 +97,24 @@ runs:
         } | cut -d ' ' -f1 | sort -u > .lfs-assets-id
       shell: bash
 
-    - name: Create Submodule LFS Cache Paths
+    # actions/cache and hashFiles resolve paths from $GITHUB_WORKSPACE, so prefix them with inputs.path
+    - name: Create LFS cache paths
       working-directory: ${{ inputs.path }}
       run: |
-        CACHE_PATHS=""
+        prefix="${INPUT_PATH#./}"
+        [ "$prefix" = "." ] && prefix=""
+        prefix="${prefix:+${prefix%/}/}"
+        echo "prefix=$prefix" >> "$GITHUB_OUTPUT"
 
-        # loop over the git submodule paths to generate a list of module directories to cache
-        # `git config` is used to extract the `path` value for each git submodule
-        # for more information about the .gitmodules file, see: https://git-scm.com/docs/gitmodules
-        if [ -f .gitmodules ]; then
-          while read -r line; do
-            CACHE_PATHS+=".git/modules/$line/lfs "
-          done < <(git config --file .gitmodules --get-regexp path | awk '{ print $2 }')
-        fi
-
-        echo "CACHE_PATHS=$CACHE_PATHS" >> "$GITHUB_OUTPUT"
+        # One path per line: the repo's LFS store, then each checked-out submodule's
+        {
+          echo "paths<<LFS_CACHE_PATHS"
+          echo "${prefix}.git/lfs"
+          git submodule foreach --quiet 'echo "$name"' | sed "s|^|${prefix}.git/modules/|; s|\$|/lfs|"
+          echo "LFS_CACHE_PATHS"
+        } >> "$GITHUB_OUTPUT"
+      env:
+        INPUT_PATH: ${{ inputs.path }}
       id: cache-paths
       shell: bash
 
@@ -119,11 +122,9 @@ runs:
       uses: actions/cache@v6
       id: lfs-cache
       with:
-        path: |
-          .git/lfs
-          ${{ steps.cache-paths.outputs.CACHE_PATHS }}
-        key: lfs-v3-${{ inputs.repository }}-${{ hashFiles('.lfs-assets-id') }}
-        restore-keys: lfs-v3-${{ inputs.repository }}-
+        path: ${{ steps.cache-paths.outputs.paths }}
+        key: lfs-v4-${{ inputs.repository }}-${{ hashFiles(format('{0}.lfs-assets-id', steps.cache-paths.outputs.prefix)) }}
+        restore-keys: lfs-v4-${{ inputs.repository }}-
         enableCrossOsArchive: ${{ inputs.enableCrossOsArchive }}
 
     - name: Git LFS Pull
